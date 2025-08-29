@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Quiz</title>
+    <!-- Load Plotly.js from CDN -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 0; }
+        .container { max-width: 600px; margin: 40px auto; background: #fff; padding: 32px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+        h1 { text-align: center; }
+        .question { margin-bottom: 24px; }
+        .answers { margin-top: 8px; }
+        .submit-btn { display: block; width: 100%; padding: 12px; background: #007bff; color: #fff; border: none; border-radius: 4px; font-size: 1.1em; cursor: pointer; margin-top: 24px; }
+        .submit-btn:disabled { background: #aaa; }
+        .result { margin-top: 32px; padding: 16px; background: #e9ffe9; border: 1px solid #b2ffb2; border-radius: 4px; }
+        .solution { margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz</h1>
+        <form id="quiz-form">
+            <div id="question-area"></div>
+            <button type="submit" class="submit-btn" id="submit-btn">Submit Answers</button>
+        </form>
+        <div id="result-area"></div>
+    </div>
+    <script>
+        // Define static questions
+        const questions = [
+            {
+                text: "Below is a graph of a line. What is the slope of the line?",
+                plot: 'y4x3',
+                options: ["positive", "negative", "zero", "undefined"],
+                answer: 0 // positive
+            },
+            {
+                text: "Below is a graph of a line. What is the slope of the line?",
+                plot: 'y3',
+                options: ["positive", "negative", "zero", "undefined"],
+                answer: 2 // zero
+            },
+            {
+                text: "Below is a graph of a line. What is the y-intercept?",
+                plot: 'y3x6',
+                options: ["3", "6", "0", "-6"],
+                answer: 1 // 6
+            },
+            {
+                text: "Does the equation y = 2x + 3 run through the point (1, 5)?",
+                options: ["Yes", "No"],
+                answer: 0 // Yes
+            },
+            {
+                text: "Does the equation y = 2x + 1 go through the point (2, 6)?",
+                options: ["True", "False"],
+                answer: 1 // False
+            }
+        ];
+
+        const userAnswers = Array(questions.length).fill(null);
+        const questionArea = document.getElementById('question-area');
+        const resultArea = document.getElementById('result-area');
+        const submitBtn = document.getElementById('submit-btn');
+        const quizForm = document.getElementById('quiz-form');
+
+        // Render all questions on one page
+        function renderAllQuestions() {
+            let html = '';
+            questions.forEach((q, idx) => {
+                let plotHtml = '';
+                if (q.plot) {
+                    plotHtml = `<div id="plotly-graph-${idx}" style="width:100%;height:300px;"></div>`;
+                }
+                html += `
+                    <div class="question">
+                        <strong>Question ${idx + 1} of ${questions.length}:</strong><br>
+                        <span>${q.text}</span>
+                        ${plotHtml}
+                        <div class="answers">
+                            ${q.options.map((opt, i) => `
+                                <label>
+                                    <input type="radio" name="answer-${idx}" value="${i}" ${userAnswers[idx] === i ? 'checked' : ''}> ${opt}
+                                </label><br>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            questionArea.innerHTML = html;
+            // Add change listeners for all questions
+            questions.forEach((q, idx) => {
+                document.querySelectorAll(`input[name="answer-${idx}"]`).forEach(input => {
+                    input.onchange = () => {
+                        userAnswers[idx] = parseInt(input.value);
+                    };
+                });
+            });
+            // Plot graphs for each question
+            const axisLimits = {
+                xaxis: { title: 'x', zeroline: false, range: [-10, 10] },
+                yaxis: { title: 'y', zeroline: false, range: [-10, 30] },
+                margin: { t: 10 },
+                showlegend: false
+            };
+            const axisLimitsQuadrants = {
+                xaxis: { title: 'x', zeroline: false, range: [-5, 5] },
+                yaxis: { title: 'y', zeroline: false, range: [-10, 20] },
+                margin: { t: 10 },
+                showlegend: false
+            };
+            const lineColor = '#007bff';
+            questions.forEach((q, idx) => {
+                if (q.plot) {
+                    if (q.plot === 'y4x3') {
+                        // Plot y = 4x + 3
+                        const x = [];
+                        const y = [];
+                        for (let i = -10; i <= 10; i++) {
+                            x.push(i);
+                            y.push(4 * i + 3);
+                        }
+                        Plotly.newPlot(`plotly-graph-${idx}`, [{
+                            x: x,
+                            y: y,
+                            mode: 'lines',
+                            line: {color: lineColor},
+                            hoverinfo: 'none',
+                        }], axisLimits, {displayModeBar: false});
+                    } else if (q.plot === 'y3') {
+                        // Plot y = 3
+                        const x = [];
+                        const y = [];
+                        for (let i = -10; i <= 10; i++) {
+                            x.push(i);
+                            y.push(3);
+                        }
+                        Plotly.newPlot(`plotly-graph-${idx}`, [{
+                            x: x,
+                            y: y,
+                            mode: 'lines',
+                            line: {color: lineColor},
+                            hoverinfo: 'none',
+                        }], axisLimits, {displayModeBar: false});
+                    } else if (q.plot === 'y3x6') {
+                        // Plot y = 3x + 6, zoomed to show quadrants and y-intercept
+                        const x = [];
+                        const y = [];
+                        for (let i = -5; i <= 5; i++) {
+                            x.push(i);
+                            y.push(3 * i + 6);
+                        }
+                        Plotly.newPlot(`plotly-graph-${idx}`, [{
+                            x: x,
+                            y: y,
+                            mode: 'lines',
+                            line: {color: lineColor},
+                            hoverinfo: 'none',
+                        }], axisLimitsQuadrants, {displayModeBar: false});
+                    }
+                }
+            });
+        }
+
+        quizForm.onsubmit = function(e) {
+            e.preventDefault();
+            // Save all answers
+            questions.forEach((q, idx) => {
+                const selected = document.querySelector(`input[name="answer-${idx}"]:checked`);
+                userAnswers[idx] = selected ? parseInt(selected.value) : null;
+            });
+            // Check if all questions are answered
+            if (userAnswers.some(a => a === null)) {
+                alert('Please answer all questions before submitting.');
+                return;
+            }
+            // Grade quiz
+            let score = 0;
+            let solutionHtml = '<div class="solution"><strong>Solutions:</strong><ul>';
+            questions.forEach((q, i) => {
+                const correct = userAnswers[i] === q.answer;
+                if (correct) score++;
+                solutionHtml += `<li>Q${i+1}: ${q.text}<br>
+                    Your answer: <strong>${q.options[userAnswers[i]]}</strong> ${correct ? '✅' : '❌'}<br>
+                    Correct answer: <strong>${q.options[q.answer]}</strong>
+                </li><br>`;
+            });
+            solutionHtml += '</ul></div>';
+            resultArea.innerHTML = `<div class="result">
+                <div style="font-size:2em;font-weight:bold;text-align:center;margin-bottom:16px;">Your Score: ${score} / ${questions.length}</div>
+                ${solutionHtml}
+            </div>`;
+            submitBtn.textContent = 'Retake Quiz';
+            submitBtn.disabled = false;
+            questionArea.innerHTML = '';
+            submitBtn.onclick = function(ev) {
+                ev.preventDefault();
+                // Reset state
+                for (let i = 0; i < userAnswers.length; i++) userAnswers[i] = null;
+                resultArea.innerHTML = '';
+                submitBtn.textContent = 'Submit Answers';
+                renderAllQuestions();
+                // Restore original submit behavior
+                submitBtn.onclick = null;
+            };
+        };
+
+        // Initial render
+        renderAllQuestions();
+    </script>
+</body>
+</html>
